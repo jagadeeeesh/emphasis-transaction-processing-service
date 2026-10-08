@@ -1,0 +1,83 @@
+{
+  "notes": [
+    "This file matches POST /api/v1/transactions/batch with sample/transactions.json.",
+    "Arrival order is preserved. The batch is not sorted before processing.",
+    "TXN-2002 arrives first (sequence 2) and is held PENDING until sequence 1 is processed, then released to PROCESSED in the same batch.",
+    "TXN-2005 is PENDING because sequence numbers are scoped per accountId and ACC-203 expected sequence is 1. Missing sequences: 1,2,3,4.",
+    "Retry simulation for TXN-2005 (fail first attempt, then succeed) is exercised in tests using sequenceNumber=1 on a new account, which is the only way that transaction can enter PROCESSING under sequence-based ordering."
+  ],
+  "results": [
+    {
+      "transactionId": "TXN-2002",
+      "requestId": "REQ-2",
+      "accountId": "ACC-201",
+      "status": "PROCESSED",
+      "sequenceNumber": 2,
+      "retryCount": 0
+    },
+    {
+      "transactionId": "TXN-2001",
+      "requestId": "REQ-1",
+      "accountId": "ACC-201",
+      "status": "PROCESSED",
+      "sequenceNumber": 1,
+      "retryCount": 0
+    },
+    {
+      "transactionId": "TXN-2002",
+      "requestId": "REQ-2-DUP",
+      "accountId": "ACC-201",
+      "status": "DUPLICATE",
+      "sequenceNumber": 2,
+      "errorMessage": "DUPLICATE_TRANSACTION"
+    },
+    {
+      "transactionId": "TXN-2003",
+      "requestId": "REQ-3",
+      "accountId": "ACC-201",
+      "status": "PROCESSED",
+      "sequenceNumber": 3,
+      "retryCount": 0
+    },
+    {
+      "transactionId": "TXN-2004",
+      "requestId": "REQ-4",
+      "accountId": "ACC-202",
+      "status": "FAILED",
+      "sequenceNumber": 4,
+      "retryCount": 0,
+      "errorMessage": "INVALID_AMOUNT"
+    },
+    {
+      "transactionId": "TXN-2005",
+      "requestId": "REQ-5",
+      "accountId": "ACC-203",
+      "status": "PENDING",
+      "sequenceNumber": 5,
+      "retryCount": 0,
+      "errorMessage": "WAITING_FOR_SEQUENCE expected=1 missing=[1, 2, 3, 4]"
+    }
+  ],
+  "summary": {
+    "total": 6,
+    "received": 0,
+    "processing": 0,
+    "processed": 3,
+    "duplicate": 1,
+    "pending": 1,
+    "retryPending": 0,
+    "failed": 1,
+    "accountBalances": {
+      "ACC-201": 85
+    },
+    "missingSequences": [
+      "accountId=ACC-201 nextExpectedSequence=4",
+      "accountId=ACC-203 nextExpectedSequence=1"
+    ]
+  },
+  "accountBalances": {
+    "ACC-201": "100 CREDIT then 40 DEBIT then 25 CREDIT = 85 USD",
+    "ACC-202": "no balance; invalid amount never applied",
+    "ACC-203": "no balance; sequence 5 is waiting for 1"
+  }
+}
